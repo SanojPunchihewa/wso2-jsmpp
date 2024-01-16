@@ -262,10 +262,16 @@ public class SMPPSession extends AbstractSession implements ClientSession {
       throw new IOException("Session state is not closed");
     }
 
-    conn = connFactory.createConnection(host, port);
+    int soTimeout = getEnquireLinkTimer();
+    long startTime = System.currentTimeMillis();
+    conn = connFactory.createConnection(host, port, soTimeout);
+    long interval = System.currentTimeMillis() - startTime;
     log.info("Connected from port {} to {}:{}", conn.getLocalPort(), conn.getInetAddress(), conn.getPort());
 
-    conn.setSoTimeout(getEnquireLinkTimer());
+    if (interval >= soTimeout) {
+      throw new IOException("Connection timeout");
+    }
+    conn.setSoTimeout(soTimeout - (int) interval);
 
     sessionContext.open();
     try {
